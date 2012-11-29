@@ -1,0 +1,117 @@
+#+TITLE:     README.org
+#+AUTHOR:    Mike (stew) O'Connor
+#+EMAIL:     stew@vireo.org
+#+DATE:      2012-11-28 Wed
+#+DESCRIPTION:
+#+KEYWORDS:
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:t toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP:   
+#+LINK_HOME: 
+#+XSLT:
+
+This package adds support for using some scalaz type-classes with
+[[https://github.com/djspiewak/gll-combinators][gll-combinators]] Parsers.
+
+* Install
+Clone the github repository, and publish it to your local ivy2:
+
+#+BEGIN_EXAMPLE
+$ git clone https://github.com/stew/scalaz-gll.git
+$ cd scalaz-gll
+$ sbt publish-local
+#+END_EXAMPLE
+
+* Configure SBT
+Add the following libraryDependency to your project:
+
+#+BEGIN_EXAMPLE
+"org.vireo" %% "scalaz-gll" % "0.1"
+#+END_EXAMPLE
+
+* Mix in the ScalazInstances trait:
+In order to get access to the implicits that add type class instances
+for scalaz, you need to mixin the /scalaz.gll.ScalazInstances/ trait to
+your Parser:
+
+#+begin_src scala :exports code
+
+import com.codecommit.gll._
+import scalaz.gll.ScalazInstances
+
+class MyParser extends RegexParsers with ScalazInstances {
+…
+}
+#+end_src
+* Supported Categories
+** Monoid / (Semigroup)
+Parser[A] is a monoid if A is a monoid.  
+
+Since string is a monoid:
+#+begin_src scala :exports code
+    val uppercase : Parser[String] = "[A-Z]"r
+    val lowercases : Parser[String] = "[a-z]*"r
+
+    val capitalized : Parser{String] = uppercase |+| lowercases
+    // which is equivalent to:
+    val capitalized0 : Parser[String] = (uppercase ~ lowercases) ^^ (_ ++ _)
+
+#+end_src
+
+List is a monoid, where mzero is List().  The derived mzero for
+Parser[List[A]] is a parser which consumes no input and produces an
+empty List[A].  When we have a monoid, we can use scalaz's provided
+suml function:
+
+#+begin_src scala :exports code
+    val listOfParsers = List[Parser[String]]("a","b","c","d")
+
+    val abcdParser : Parser[String] = listOfParsers.suml
+    // which is equivalent to
+    val abcdParser : Parser[String] = "abcd"
+
+#+end_src
+** Pointed
+
+Point[Parser[A]] will create a parser which consumes no input
+and produces an A.  so:
+
+#+begin_src scala :exports code
+    val fooP : Parser[String] = "foo"
+    val pointP = 1111.point[Parser]
+
+    // a parser that when parsing the string "foo" will produce: 1111 ~ "foo"
+    val p = fooP ~ pointP
+#+end_src
+
+** Applicative
+This is taken right out of the specs included in src/test:
+#+begin_src scala :exports code
+  case class Person(first: String, last: String)
+  // BTW: take it from a guy named O'Connor that the following is sucky
+  val nameP : Parser[String] = regex("[A-Za-z]*"r)
+
+  val applicativePerson: Parser[Person] = (nameP |@| nameP)(Person)
+  // could also be written as:
+  val applyPerson = ^(nameP, nameP)(Person)
+#+end_src
+
+** Monad
+Same as above, but:
+#+begin_src scala :exports code
+   val monadPerson = for {
+       first <- nameP
+       last <- nameP
+   } yield(Person(first,last))
+
+   // however that would have worked without a monad instance, so to insist 
+   // on using the monad instance:
+   val monadPerson2 = nameP >>= { first => nameP.map(Person(first,_)) }
+#+end_src
+
+* TODO
+- Should probably have a separate semigroup instance so that Parser[A] is a semigroup if A is a semigroup but not a monoid
