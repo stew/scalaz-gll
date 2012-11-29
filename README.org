@@ -85,7 +85,7 @@ and produces an A.  so:
     val pointP = 1111.point[Parser]
 
     // a parser that when parsing the string "foo" will produce: 1111 ~ "foo"
-    val p = fooP ~ pointP
+    val p = pointP ~ fooP
 #+END_EXAMPLE
 
 ** Applicative
