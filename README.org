@@ -38,7 +38,7 @@ In order to get access to the implicits that add type class instances
 for scalaz, you need to mixin the /scalaz.gll.ScalazInstances/ trait to
 your Parser:
 
-#+begin_src scala :exports code
+#+BEGIN_EXAMPLE
 
 import com.codecommit.gll._
 import scalaz.gll.ScalazInstances
@@ -46,13 +46,13 @@ import scalaz.gll.ScalazInstances
 class MyParser extends RegexParsers with ScalazInstances {
 …
 }
-#+end_src
+#+END_EXAMPLE
 * Supported Categories
 ** Monoid / (Semigroup)
 Parser[A] is a monoid if A is a monoid.  
 
 Since string is a monoid:
-#+begin_src scala :exports code
+#+BEGIN_EXAMPLE
     val uppercase : Parser[String] = "[A-Z]"r
     val lowercases : Parser[String] = "[a-z]*"r
 
@@ -60,37 +60,37 @@ Since string is a monoid:
     // which is equivalent to:
     val capitalized0 : Parser[String] = (uppercase ~ lowercases) ^^ (_ ++ _)
 
-#+end_src
+#+END_EXAMPLE
 
 List is a monoid, where mzero is List().  The derived mzero for
 Parser[List[A]] is a parser which consumes no input and produces an
 empty List[A].  When we have a monoid, we can use scalaz's provided
 suml function:
 
-#+begin_src scala :exports code
+#+BEGIN_EXAMPLE
     val listOfParsers = List[Parser[String]]("a","b","c","d")
 
     val abcdParser : Parser[String] = listOfParsers.suml
     // which is equivalent to
     val abcdParser : Parser[String] = "abcd"
 
-#+end_src
+#+END_EXAMPLE
 ** Pointed
 
 Point[Parser[A]] will create a parser which consumes no input
 and produces an A.  so:
 
-#+begin_src scala :exports code
+#+BEGIN_EXAMPLE
     val fooP : Parser[String] = "foo"
     val pointP = 1111.point[Parser]
 
     // a parser that when parsing the string "foo" will produce: 1111 ~ "foo"
     val p = fooP ~ pointP
-#+end_src
+#+END_EXAMPLE
 
 ** Applicative
 This is taken right out of the specs included in src/test:
-#+begin_src scala :exports code
+#+BEGIN_EXAMPLE
   case class Person(first: String, last: String)
   // BTW: take it from a guy named O'Connor that the following is sucky
   val nameP : Parser[String] = regex("[A-Za-z]*"r)
@@ -98,11 +98,11 @@ This is taken right out of the specs included in src/test:
   val applicativePerson: Parser[Person] = (nameP |@| nameP)(Person)
   // could also be written as:
   val applyPerson = ^(nameP, nameP)(Person)
-#+end_src
+#+END_EXAMPLE
 
 ** Monad
 Same as above, but:
-#+begin_src scala :exports code
+#+BEGIN_EXAMPLE
    val monadPerson = for {
        first <- nameP
        last <- nameP
@@ -111,7 +111,7 @@ Same as above, but:
    // however that would have worked without a monad instance, so to insist 
    // on using the monad instance:
    val monadPerson2 = nameP >>= { first => nameP.map(Person(first,_)) }
-#+end_src
+#+END_EXAMPLE
 
 * TODO
 - Should probably have a separate semigroup instance so that Parser[A] is a semigroup if A is a semigroup but not a monoid
